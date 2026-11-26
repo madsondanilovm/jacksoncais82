@@ -59,6 +59,12 @@ header{position:sticky;top:0;z-index:30;background:rgba(3,3,3,.86);backdrop-filt
 section{padding:clamp(36px,5vw,64px) 0}
 h2{font-size:clamp(32px,5vw,46px);line-height:1.05;margin:0 0 8px;text-wrap:balance}
 .lead{color:var(--mut);margin:0 0 28px;max-width:60ch}
+.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:20px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+  color:var(--mut);font:600 14px "Outfit",sans-serif;cursor:pointer;white-space:nowrap;transition:all .15s}
+.chip:hover{color:var(--ink);border-color:var(--cy)}
+.chip.on{background:linear-gradient(90deg,var(--cy),var(--pk));color:#04121a;border-color:transparent;box-shadow:0 0 16px -4px var(--pk)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:18px}
 .prod{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s,box-shadow .2s}
 .prod:hover{border-color:var(--glow);box-shadow:0 0 24px -6px var(--glow)}
@@ -205,6 +211,7 @@ input,select{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;bor
     <div class="wrap">
       <h2 class="sign-font neon-c">Geladas agora</h2>
       <p class="lead">Escolha as bebidas, monte o carrinho e finalize o pedido direto no nosso WhatsApp.</p>
+      <div class="filters" id="filters"></div>
       <div class="grid" id="grid"></div>
       <p class="sample">Preços de exemplo — confirme os valores antes de publicar.</p>
     </div>
@@ -317,16 +324,71 @@ input,select{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;bor
 {
   const WHATS = "5582993592018";
   // Para adicionar bebidas, é só acrescentar itens nesta lista.
+  // Preços de referência vindos de outra loja — revise antes de divulgar.
   const PRODUCTS = [
-    { id:"coca",   name:"Coca-Cola",        desc:"Garrafa 2 litros, original.",     price:12.00, icon:"soda",  glow:"#ff3346" },
-    { id:"zero",   name:"Coca-Cola Zero",   desc:"Garrafa 2 litros, zero açúcar.",  price:12.00, icon:"zero",  glow:"#ff2f92" },
-    { id:"heine",  name:"Heineken",         desc:"Long neck 330 ml, bem gelada.",   price:9.00,  icon:"beerG", glow:"#3ad16a" },
-    { id:"skol",   name:"Skol",             desc:"Lata 350 ml.",                    price:4.50,  icon:"can",   glow:"#ffd43b" },
-    { id:"brahma", name:"Brahma",           desc:"Lata 350 ml.",                    price:4.50,  icon:"canR",  glow:"#ff3346" },
-    { id:"corona", name:"Corona",           desc:"Long neck 330 ml.",               price:10.00, icon:"beerY", glow:"#ffd43b" },
-    { id:"agua",   name:"Água mineral",     desc:"Garrafa 500 ml, sem gás.",        price:3.00,  icon:"water", glow:"#22f3ff" },
-    { id:"gas",    name:"Água com gás",     desc:"Garrafa 500 ml, com gás.",        price:3.50,  icon:"waterG",glow:"#9ad7ff" }
+    // CERVEJAS
+    { id:"skol",        name:"Skol",                 desc:"Lata 350 ml.",            price:3.70,  cat:"cervejas", icon:"canY",  glow:"#ffd43b" },
+    { id:"skol_600",    name:"Skol garrafa",         desc:"600 ml retornável.",      price:6.80,  cat:"cervejas", icon:"beerY", glow:"#ffd43b" },
+    { id:"brahma",      name:"Brahma Chopp",         desc:"Lata 350 ml.",            price:4.00,  cat:"cervejas", icon:"canR",  glow:"#ff3346" },
+    { id:"brahma_600",  name:"Brahma Chopp garrafa", desc:"600 ml.",                 price:7.00,  cat:"cervejas", icon:"beerY", glow:"#ff3346" },
+    { id:"antarctica",  name:"Antarctica Pilsen",    desc:"Lata 473 ml.",            price:5.00,  cat:"cervejas", icon:"canB",  glow:"#4aa8ff" },
+    { id:"amstel",      name:"Amstel",               desc:"Lata 350 ml.",            price:4.00,  cat:"cervejas", icon:"canR",  glow:"#ff3346" },
+    { id:"amstel_600",  name:"Amstel garrafa",       desc:"600 ml.",                 price:8.00,  cat:"cervejas", icon:"beerY", glow:"#ff3346" },
+    { id:"budweiser",   name:"Budweiser",            desc:"Lata 350 ml.",            price:4.50,  cat:"cervejas", icon:"canR",  glow:"#ff3346" },
+    { id:"bud_ln",      name:"Budweiser Long Neck",  desc:"330 ml.",                 price:6.00,  cat:"cervejas", icon:"beerY", glow:"#c62828" },
+    { id:"heine",       name:"Heineken Long Neck",   desc:"330 ml, bem gelada.",     price:7.00,  cat:"cervejas", icon:"beerG", glow:"#3ad16a" },
+    { id:"heine_600",   name:"Heineken garrafa",     desc:"600 ml.",                 price:13.00, cat:"cervejas", icon:"beerG", glow:"#3ad16a" },
+    { id:"corona",      name:"Corona Extra",         desc:"Long neck 330 ml.",       price:7.50,  cat:"cervejas", icon:"beerY", glow:"#ffd43b" },
+    { id:"devassa",     name:"Devassa",              desc:"600 ml.",                 price:6.50,  cat:"cervejas", icon:"beerY", glow:"#e53935" },
+    { id:"bohemia",     name:"Bohemia",              desc:"Litrinho 300 ml.",        price:3.00,  cat:"cervejas", icon:"beerY", glow:"#c0892a" },
+    // REFRIGERANTES
+    { id:"coca_lata",   name:"Coca-Cola lata",       desc:"350 ml.",                 price:4.00,  cat:"refri",    icon:"canR",  glow:"#ff3346" },
+    { id:"coca",        name:"Coca-Cola 2L",         desc:"Garrafa 2 litros.",       price:11.00, cat:"refri",    icon:"soda",  glow:"#ff3346" },
+    { id:"zero",        name:"Coca-Cola Zero 2L",    desc:"Garrafa 2 litros.",       price:11.00, cat:"refri",    icon:"zero",  glow:"#ff2f92" },
+    { id:"coca_1l",     name:"Coca-Cola 1L",         desc:"1 litro.",                price:5.00,  cat:"refri",    icon:"soda",  glow:"#ff3346" },
+    { id:"guarana",     name:"Guaraná Antarctica",   desc:"Lata 350 ml.",            price:3.50,  cat:"refri",    icon:"canB",  glow:"#4aa8ff" },
+    { id:"guarana_2l",  name:"Guaraná Antarctica 2L",desc:"2 litros.",               price:9.00,  cat:"refri",    icon:"soda",  glow:"#4aa8ff" },
+    { id:"fanta",       name:"Fanta Laranja lata",   desc:"350 ml.",                 price:3.50,  cat:"refri",    icon:"canO",  glow:"#ff9f1c" },
+    { id:"fanta_2l",    name:"Fanta Laranja 2L",     desc:"2 litros.",               price:10.00, cat:"refri",    icon:"soda",  glow:"#ff9f1c" },
+    { id:"sprite",      name:"Sprite lata",          desc:"350 ml.",                 price:3.20,  cat:"refri",    icon:"canG",  glow:"#3ad16a" },
+    { id:"tonica",      name:"Água Tônica",          desc:"Antarctica, lata 350 ml.",price:4.00,  cat:"refri",    icon:"canB",  glow:"#9ad7ff" },
+    // ÁGUAS
+    { id:"agua",        name:"Água mineral",         desc:"500 ml, sem gás.",        price:1.50,  cat:"aguas",    icon:"water", glow:"#22f3ff" },
+    { id:"gas",         name:"Água com gás",         desc:"500 ml.",                 price:2.00,  cat:"aguas",    icon:"waterG",glow:"#9ad7ff" },
+    { id:"gas_15",      name:"Água com gás 1,5L",    desc:"Indaiá, 1,5 litro.",      price:5.00,  cat:"aguas",    icon:"water", glow:"#22f3ff" },
+    // SUCOS
+    { id:"suco_lara",   name:"Suco Del Valle Laranja",desc:"1,5 litro.",             price:7.50,  cat:"sucos",    icon:"juice", glow:"#ff9f1c" },
+    { id:"suco_uva",    name:"Suco Del Valle Uva",   desc:"1,5 litro.",              price:7.50,  cat:"sucos",    icon:"juice", glow:"#8b5cf6" },
+    // ENERGÉTICOS
+    { id:"redbull",     name:"Red Bull",             desc:"250 ml.",                 price:6.49,  cat:"energ",    icon:"energy",glow:"#4aa8ff" },
+    { id:"redbull_mel", name:"Red Bull Melancia",    desc:"250 ml.",                 price:9.00,  cat:"energ",    icon:"energy",glow:"#ff2f92" },
+    { id:"tnt",         name:"Energético TNT",       desc:"269 ml.",                 price:5.00,  cat:"energ",    icon:"energy",glow:"#ffd43b" },
+    // DESTILADOS & VINHOS
+    { id:"smirnoff",    name:"Vodka Smirnoff",       desc:"600 ml.",                 price:26.00, cat:"destila",  icon:"spirit",glow:"#9ad7ff" },
+    { id:"natasha",     name:"Vodka Natasha",        desc:"900 ml.",                 price:20.00, cat:"destila",  icon:"spirit",glow:"#9ad7ff" },
+    { id:"gin",         name:"Gin Bulldog",          desc:"750 ml.",                 price:115.00,cat:"destila",  icon:"spirit",glow:"#3ad16a" },
+    { id:"whisky",      name:"Whisky Old Eight",     desc:"900 ml.",                 price:23.00, cat:"destila",  icon:"spirit",glow:"#c0892a" },
+    { id:"barreiro",    name:"Velho Barreiro Gold",  desc:"Cachaça, 910 ml.",        price:20.00, cat:"destila",  icon:"spirit",glow:"#ffd43b" },
+    { id:"pitu",        name:"Cachaça Pitu",         desc:"600 ml.",                 price:10.00, cat:"destila",  icon:"spirit",glow:"#ff9f1c" },
+    { id:"gato_negro",  name:"Vinho Gato Negro",     desc:"750 ml.",                 price:32.00, cat:"destila",  icon:"wine",  glow:"#ff2f92" },
+    { id:"bons_ventos", name:"Vinho Bons Ventos",    desc:"Tinto, 750 ml.",          price:45.50, cat:"destila",  icon:"wine",  glow:"#c62828" },
+    // DRINKS PRONTOS
+    { id:"beats_caipi", name:"Beats Caipirinha",     desc:"Long neck 269 ml.",       price:8.00,  cat:"drinks",   icon:"beerG", glow:"#3ad16a" },
+    { id:"beats_trop",  name:"Beats Tropical",       desc:"269 ml.",                 price:8.00,  cat:"drinks",   icon:"beerY", glow:"#ffd43b" },
+    { id:"ice_leev",    name:"Ice Leev",             desc:"Long neck.",              price:6.00,  cat:"drinks",   icon:"beerB", glow:"#4aa8ff" },
+    { id:"mikes",       name:"Mike's Hard",          desc:"269 ml.",                 price:4.50,  cat:"drinks",   icon:"canB",  glow:"#ff2f92" }
   ];
+  const CATS = [
+    { id:"todos",   name:"Todos" },
+    { id:"cervejas",name:"Cervejas" },
+    { id:"refri",   name:"Refrigerantes" },
+    { id:"aguas",   name:"Águas" },
+    { id:"sucos",   name:"Sucos" },
+    { id:"energ",   name:"Energéticos" },
+    { id:"destila", name:"Destilados & Vinhos" },
+    { id:"drinks",  name:"Drinks prontos" }
+  ];
+  let activeCat = "todos";
   const ICONS = {
     water:'<svg viewBox="0 0 100 160" fill="none" stroke="#22f3ff" stroke-width="3.2" stroke-linejoin="round"><rect x="38" y="4" width="24" height="10" rx="2"/><path d="M41 14h18v8c10 4 16 10 16 22v96c0 8-6 14-14 14H39c-8 0-14-6-14-14V44c0-12 6-18 16-22z"/><path d="M25 70h50M25 112h50"/><path d="M34 92q8-6 16 0t16 0" stroke-linecap="round"/></svg>',
     soda:'<svg viewBox="0 0 100 160" fill="none" stroke="#ff3346" stroke-width="3.2" stroke-linejoin="round"><rect x="39" y="3" width="22" height="9" rx="2"/><path d="M42 12h16v12c0 10 14 18 14 36v80c0 8-6 14-14 14H42c-8 0-14-6-14-14V60c0-18 14-26 14-36z"/><rect x="28" y="80" width="44" height="34" fill="rgba(255,51,70,.35)"/><path d="M34 98q8-7 16 0t16 0" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>',
@@ -335,7 +397,16 @@ input,select{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;bor
     beerY:'<svg viewBox="0 0 100 160" fill="none" stroke="#ffd43b" stroke-width="3.2" stroke-linejoin="round"><path d="M40 6h20l-3 10h-14z"/><path d="M43 16h14v10c6 2 10 8 10 18v96c0 6-5 11-11 11H44c-6 0-11-5-11-11V44c0-10 4-16 10-18z"/><rect x="33" y="70" width="34" height="46" fill="#ffd43b22"/></svg>',
     can:'<svg viewBox="0 0 100 160" fill="none" stroke="#ffd43b" stroke-width="3.2" stroke-linejoin="round"><path d="M34 26h32v104c0 8-4 14-12 14H46c-8 0-12-6-12-14z"/><path d="M34 26l5-10h22l5 10"/><rect x="34" y="60" width="32" height="40" fill="#ffd43b22"/></svg>',
     canR:'<svg viewBox="0 0 100 160" fill="none" stroke="#ff3346" stroke-width="3.2" stroke-linejoin="round"><path d="M34 26h32v104c0 8-4 14-12 14H46c-8 0-12-6-12-14z"/><path d="M34 26l5-10h22l5 10"/><rect x="34" y="60" width="32" height="40" fill="#ff334622"/></svg>',
-    waterG:'<svg viewBox="0 0 100 160" fill="none" stroke="#9ad7ff" stroke-width="3.2" stroke-linejoin="round"><rect x="38" y="4" width="24" height="10" rx="2"/><path d="M41 14h18v8c10 4 16 10 16 22v96c0 8-6 14-14 14H39c-8 0-14-6-14-14V44c0-12 6-18 16-22z"/><circle cx="40" cy="80" r="2.5"/><circle cx="55" cy="96" r="2.5"/><circle cx="46" cy="112" r="2.5"/><circle cx="58" cy="126" r="2.5"/><circle cx="42" cy="134" r="2.5"/></svg>'
+    waterG:'<svg viewBox="0 0 100 160" fill="none" stroke="#9ad7ff" stroke-width="3.2" stroke-linejoin="round"><rect x="38" y="4" width="24" height="10" rx="2"/><path d="M41 14h18v8c10 4 16 10 16 22v96c0 8-6 14-14 14H39c-8 0-14-6-14-14V44c0-12 6-18 16-22z"/><circle cx="40" cy="80" r="2.5"/><circle cx="55" cy="96" r="2.5"/><circle cx="46" cy="112" r="2.5"/><circle cx="58" cy="126" r="2.5"/><circle cx="42" cy="134" r="2.5"/></svg>',
+    canY:'<svg viewBox="0 0 100 160" fill="none" stroke="#ffd43b" stroke-width="3.2" stroke-linejoin="round"><path d="M34 26h32v104c0 8-4 14-12 14H46c-8 0-12-6-12-14z"/><path d="M34 26l5-10h22l5 10"/><rect x="34" y="60" width="32" height="40" fill="#ffd43b22"/></svg>',
+    canO:'<svg viewBox="0 0 100 160" fill="none" stroke="#ff9f1c" stroke-width="3.2" stroke-linejoin="round"><path d="M34 26h32v104c0 8-4 14-12 14H46c-8 0-12-6-12-14z"/><path d="M34 26l5-10h22l5 10"/><rect x="34" y="60" width="32" height="40" fill="#ff9f1c22"/></svg>',
+    canG:'<svg viewBox="0 0 100 160" fill="none" stroke="#3ad16a" stroke-width="3.2" stroke-linejoin="round"><path d="M34 26h32v104c0 8-4 14-12 14H46c-8 0-12-6-12-14z"/><path d="M34 26l5-10h22l5 10"/><rect x="34" y="60" width="32" height="40" fill="#3ad16a22"/></svg>',
+    canB:'<svg viewBox="0 0 100 160" fill="none" stroke="#4aa8ff" stroke-width="3.2" stroke-linejoin="round"><path d="M34 26h32v104c0 8-4 14-12 14H46c-8 0-12-6-12-14z"/><path d="M34 26l5-10h22l5 10"/><rect x="34" y="60" width="32" height="40" fill="#4aa8ff22"/></svg>',
+    beerB:'<svg viewBox="0 0 100 160" fill="none" stroke="#4aa8ff" stroke-width="3.2" stroke-linejoin="round"><path d="M40 6h20l-3 10h-14z"/><path d="M43 16h14v10c6 2 10 8 10 18v96c0 6-5 11-11 11H44c-6 0-11-5-11-11V44c0-10 4-16 10-18z"/><rect x="33" y="70" width="34" height="46" fill="#4aa8ff22"/></svg>',
+    wine:'<svg viewBox="0 0 100 160" fill="none" stroke="#ff2f92" stroke-width="3.2" stroke-linejoin="round"><path d="M44 6h12v34c8 6 12 14 12 28v70c0 6-4 10-10 10H42c-6 0-10-4-10-10V68c0-14 4-22 12-28z"/><rect x="36" y="78" width="28" height="56" rx="3" fill="#ff2f9222"/></svg>',
+    spirit:'<svg viewBox="0 0 100 160" fill="none" stroke="#c0892a" stroke-width="3.2" stroke-linejoin="round"><rect x="43" y="6" width="14" height="20" rx="2"/><path d="M40 26h20v10c0 8 8 12 8 26v78c0 6-4 10-10 10H42c-6 0-10-4-10-10V62c0-14 8-18 8-26z"/><rect x="36" y="86" width="28" height="30" rx="3" fill="#c0892a22"/></svg>',
+    energy:'<svg viewBox="0 0 100 160" fill="none" stroke="#4aa8ff" stroke-width="3" stroke-linejoin="round"><path d="M38 20h24v110c0 8-4 14-12 14h0c-8 0-12-6-12-14z"/><path d="M38 20l4-8h16l4 8"/><path d="M52 48l-10 22h12l-8 24" stroke="#ffd43b" stroke-width="3" stroke-linecap="round"/></svg>',
+    juice:'<svg viewBox="0 0 100 160" fill="none" stroke="#ff9f1c" stroke-width="3.2" stroke-linejoin="round"><path d="M34 40h32v94c0 6-4 10-10 10H44c-6 0-10-4-10-10z"/><path d="M34 40l6-16h20l6 16"/><path d="M58 24l10-10" stroke-linecap="round"/><rect x="40" y="70" width="20" height="24" rx="2" fill="#ff9f1c22"/></svg>'
   };
   const $ = id => document.getElementById(id);
   const PHOTOS = {
@@ -357,8 +428,18 @@ input,select{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;bor
     save(); render();
   }
 
+  function renderFilters(){
+    $("filters").innerHTML = CATS.map(c =>
+      '<button class="chip'+(c.id===activeCat?' on':'')+'" data-cat="'+c.id+'">'+esc(c.name)+'</button>'
+    ).join("");
+    $("filters").querySelectorAll("button").forEach(b => b.onclick = () => {
+      activeCat = b.dataset.cat; renderFilters(); renderGrid();
+    });
+  }
+
   function renderGrid(){
-    $("grid").innerHTML = PRODUCTS.map(p => {
+    const list = PRODUCTS.filter(p => activeCat === "todos" || p.cat === activeCat);
+    $("grid").innerHTML = list.map(p => {
       const q = cart[p.id] || 0;
       const ctrl = q
         ? '<div class="stepper"><button class="qbtn" data-act="dec" data-id="'+p.id+'" aria-label="Tirar um">−</button><span class="qty">'+q+'</span><button class="qbtn" data-act="inc" data-id="'+p.id+'" aria-label="Pôr mais um">+</button></div>'
@@ -403,7 +484,7 @@ input,select{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;bor
     btn.href = "https://wa.me/" + WHATS + "?text=" + encodeURIComponent(msg);
   }
 
-  function render(){ renderGrid(); renderCart(); }
+  function render(){ renderFilters(); renderGrid(); renderCart(); }
 
   let tt;
   function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => el.classList.remove("show"), 1600); }
